@@ -1,0 +1,32 @@
+{
+  "name": "polo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CLI tool for migrating data between Salesforce and Oracle.",
+  "type": "module",
+  "bin": {
+    "polo": "dist/cli.js"
+  },
+  "scripts": {
+    "migrate": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"{src,tests}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+  },
+  "dependencies": {
+    "oracledb": "^6.10.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.3",
+    "@types/oracledb": "^6.10.4",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "tsx": "^4.22.4",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
+  }
+}

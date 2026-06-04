@@ -1,0 +1,51 @@
+/**
+ * commands/sf.ts
+ *
+ * `mars sf <env> -q "<soql>" [-o format] [-f outfile]` -- run a SOQL query
+ * against a Salesforce org and emit the result rows in the chosen format.
+ */
+import { Command, Option } from 'commander'
+
+import { loadEnv } from '../env.js'
+import { Salesforce } from '../sf/Salesforce.js'
+import {
+  type OutputFormat,
+  OUTPUT_FORMATS,
+  writeRecords,
+} from '../output/writers.js'
+
+interface SfOptions {
+  query: string
+  envFile?: string
+  namespace?: string
+  file?: string
+  output: OutputFormat
+}
+
+export function buildSfCommand(): Command {
+  return new Command('sf')
+    .description('Run a SOQL query against a Salesforce environment')
+    .argument('<env>', 'Salesforce environment key (e.g. TRAIL)')
+    .requiredOption('-q, --query <soql>', 'SOQL statement to execute')
+    .option('-e, --env-file <path>', 'path to .env file with credentials (overrides SCIPIO_SECRETS_ENV)')
+    .option('-n, --namespace <ns>', 'Salesforce namespace')
+    .option('-f, --file <path>', 'output file path; omit for stdout')
+    .addOption(
+      new Option('-o, --output <format>', 'output format')
+        .choices([...OUTPUT_FORMATS])
+        .default('json'),
+    )
+    .action(async (envKey: string, opts: SfOptions) => {
+      loadEnv(opts.envFile, envKey)
+
+      const sf = new Salesforce(envKey, opts.namespace ?? null)
+      const records = await sf.query(opts.query)
+      const n = await writeRecords(records.data, {
+        format: opts.output,
+        path: opts.file ?? null,
+      })
+      if (opts.file) {
+        console.error(`wrote ${n} row(s) to ${opts.file}`)
+      }
+    })
+}

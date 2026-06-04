@@ -58,11 +58,11 @@ export class OracleClient {
     )
   }
 
-  static clientConstructor(environment: string): OracleClient {
+  static clientConstructor(environment: string, prefix = 'ORACLE'): OracleClient {
     const E = environment.toUpperCase()
     const e = environment.toLowerCase()
     const get = (suffix: string) =>
-      process.env[`ORACLE_${E}_${suffix}`] || process.env[`ORACLE_${e}_${suffix}`] || undefined
+      process.env[`${prefix}_${E}_${suffix}`] || process.env[`${prefix}_${e}_${suffix}`] || undefined
 
     const user = get('USER')
     const pwd = get('PASS')

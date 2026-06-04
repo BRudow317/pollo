@@ -65,7 +65,7 @@ export class SfClient {
     const baseUrl = process.env[`SF_${E}_BASE_URL`] || ''
     const consumerKey = process.env[`SF_${E}_CONSUMER_KEY`] || ''
     const consumerSecret = process.env[`SF_${E}_CONSUMER_SECRET`] || ''
-    const apiVersion = process.env[`SF_${E}_API_VERSION`] || '66.0'
+    // const apiVersion = process.env[`SF_${E}_API_VERSION`] || '66.0'
 
     if (!baseUrl || !consumerKey || !consumerSecret) {
       throw new Error(
@@ -80,7 +80,7 @@ export class SfClient {
       consumerKey,
       consumerSecret,
       accessToken,
-      apiVersion,
+      apiVersion: '66.0',
       maxRetries,
     })
   }

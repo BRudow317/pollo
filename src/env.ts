@@ -1,13 +1,7 @@
 /**
  * env.ts
  *
- * Node port of charon.py's `parse_config_file`: read a `key=value` secrets file,
- * resolve `${VAR}` / `$VAR` / `{VAR}` interpolation, and inject the result into
- * `process.env`. This is the one piece of charon.py we keep, since Node has no
- * venv/PYTHONPATH bootstrap to replicate -- only the env-injection responsibility.
- *
- * The real secrets live at Q:\.secrets\.env (see charon CLAUDE.md). Override the
- * path with the SCIPIO_SECRETS_ENV environment variable.
+ * 
  */
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -17,7 +11,7 @@ export function defaultSecretsPath(): string {
   return (
     process.env.SCIPIO_SECRETS_ENV ||
     // Documented location of the shared secrets file.
-    'Q:\\.secrets\\.env'
+    'C:\\Users\\rmedi\\stage\\rundeck-scripts\\.env'
   )
 }
 

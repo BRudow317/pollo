@@ -23,6 +23,17 @@ npm install -g .
 The `prepare` script builds `dist/` automatically on install, so cloning and
 installing the repo is enough -- no need to commit `dist/`.
 
+Local workaround (no global install):
+
+```shell
+npm run mars -- ora DWH -q "select * from sf_account"
+# or (no `--`, no flags):
+npm run mars ora DWH "select * from sf_account"
+```
+
+Note: `ora` expects the environment as a positional value (`DWH` above).
+`-e` means env-file path, not environment key.
+
 ---
 
 ## Requirements
@@ -98,41 +109,41 @@ mars migrate \
 
 Flags mirror the original `polo`/`charon` migration tool:
 
-| Flag | Required | Notes |
-|---|---|---|
-| `--source-system` / `--target-system` | yes | `salesforce` or `oracle` |
-| `--source-environment` / `--target-environment` | yes | env key (e.g. `TRAIL`, `DWH`) |
-| `--source-namespace` / `--target-namespace` | no | schema / namespace |
-| `--action` | no | `reset` (default), `insert`, `upsert`, `update` |
-| `--external-id-field` | no | external id for SF upsert (defaults to `Id`) |
-| `--tables` | no | space-separated names, or `*` for the whole schema |
+| Flag                                            | Required | Notes                                              |
+| ----------------------------------------------- | -------- | -------------------------------------------------- |
+| `--source-system` / `--target-system`           | yes      | `salesforce` or `oracle`                           |
+| `--source-environment` / `--target-environment` | yes      | env key (e.g. `TRAIL`, `DWH`)                      |
+| `--source-namespace` / `--target-namespace`     | no       | schema / namespace                                 |
+| `--action`                                      | no       | `reset` (default), `insert`, `upsert`, `update`    |
+| `--external-id-field`                           | no       | external id for SF upsert (defaults to `Id`)       |
+| `--tables`                                      | no       | space-separated names, or `*` for the whole schema |
 
 ---
 
 ## Output formats (`-o`)
 
-| Format | Notes |
-|---|---|
+| Format           | Notes                                            |
+| ---------------- | ------------------------------------------------ |
 | `json` (default) | Pretty-printed JSON array. stdout or `-f <path>` |
-| `ndjson` | One JSON object per line. stdout or `-f` |
-| `csv` | Comma-separated, header row. stdout or `-f` |
-| `tsv` | Tab-separated, header row. stdout or `-f` |
-| `parquet` | Apache Parquet via Polars. **Requires `-f`** |
-| `arrow` | Apache Arrow IPC via Polars. **Requires `-f`** |
-| `dataframe` | Polars `df.toString()` pretty table. stdout only |
+| `ndjson`         | One JSON object per line. stdout or `-f`         |
+| `csv`            | Comma-separated, header row. stdout or `-f`      |
+| `tsv`            | Tab-separated, header row. stdout or `-f`        |
+| `parquet`        | Apache Parquet via Polars. **Requires `-f`**     |
+| `arrow`          | Apache Arrow IPC via Polars. **Requires `-f`**   |
+| `dataframe`      | Polars `df.toString()` pretty table. stdout only |
 
 ---
 
 ## Scripts
 
-| Script | Purpose |
-|---|---|
-| `npm run dev -- <args>` | run the CLI from TypeScript via `tsx` |
-| `npm run build` | compile `src` → `dist` |
-| `npm start -- <args>` | run the compiled CLI |
-| `npm test` | live connection health checks (Oracle + Salesforce) |
-| `npm run typecheck` | type-check `src` and `tests` |
-| `npm run lint` | lint |
+| Script                  | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `npm run dev -- <args>` | run the CLI from TypeScript via `tsx`               |
+| `npm run build`         | compile `src` → `dist`                              |
+| `npm start -- <args>`   | run the compiled CLI                                |
+| `npm test`              | live connection health checks (Oracle + Salesforce) |
+| `npm run typecheck`     | type-check `src` and `tests`                        |
+| `npm run lint`          | lint                                                |
 
 ---
 

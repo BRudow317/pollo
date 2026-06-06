@@ -15,6 +15,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
     "start": "node dist/cli.js",
+    "mars": "tsx src/cli.ts",
     "dev": "tsx src/cli.ts",
     "migrate": "tsx src/cli.ts migrate",
     "typecheck": "tsc -p tsconfig.json --noEmit",

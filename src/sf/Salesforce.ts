@@ -30,6 +30,34 @@ const SOQL_GET_MAX_ENCODED = 6000
 // Objects with more than this many records are extracted via Bulk 2.0.
 const BULK_RECORD_THRESHOLD = 2000
 
+// SQL-style `SELECT * FROM <object> ...`. The projection must be a bare `*`
+// (the whole select list), matching typical SQL dialects rather than SOQL's
+// `FIELDS(ALL)`. Captures: 1=`SELECT ` prefix, 2=` FROM `, 3=object name,
+// 4=remainder (WHERE / ORDER BY / LIMIT / ...).
+const WILDCARD_SELECT = /^(\s*SELECT\s+)\*(\s+FROM\s+)([A-Za-z0-9_]+)(.*)$/is
+
+export interface WildcardSelect {
+  /** Object named in the FROM clause. */
+  object: string
+  /** Text before the `*` (`SELECT `). */
+  prefix: string
+  /** Text between `*` and the object (` FROM `). */
+  infix: string
+  /** Text after the object (WHERE / ORDER BY / LIMIT / ...). */
+  suffix: string
+}
+
+/**
+ * Parse a `SELECT * FROM <object> ...` statement. Pure and reusable: returns
+ * the pieces needed to splice an explicit column list in place of `*`, or
+ * `null` when the statement is not a wildcard select.
+ */
+export function parseWildcardSelect(soql: string): WildcardSelect | null {
+  const m = soql.match(WILDCARD_SELECT)
+  if (!m) return null
+  return { prefix: m[1], infix: m[2], object: m[3], suffix: m[4] }
+}
+
 const SKIP_FIELD_TYPES: ReadonlySet<string> = new Set([
   'address',
   'location',
@@ -211,9 +239,64 @@ export class Salesforce implements DataSource {
     })
   }
 
+  /** Wrap a record stream so each row is cast per field type; pass-through when empty. */
+  private static _castStream(
+    raw: AsyncGenerator<Row>,
+    fieldTypes: Record<string, string>,
+  ): AsyncGenerator<Row> {
+    if (Object.keys(fieldTypes).length === 0) return raw
+    return (async function* () {
+      for await (const r of raw) yield castRecord(r, fieldTypes)
+    })()
+  }
+
+  /**
+   * Expand a SQL-style `SELECT * FROM <object>` into an explicit column list by
+   * describing the object. The rewritten SOQL is valid for both the REST and
+   * Bulk 2.0 endpoints (unlike `*` or `FIELDS(ALL)`), and being fully expanded
+   * it trips the same length-based Bulk routing as the migration path. Returns
+   * the rewritten statement, the object name, and the field-type map for casting,
+   * or `null` when the statement is not a wildcard select.
+   */
+  private async _expandWildcard(
+    soql: string,
+  ): Promise<{ soql: string; object: string; fieldTypes: Record<string, string> } | null> {
+    const parsed = parseWildcardSelect(soql)
+    if (!parsed) return null
+
+    const described = await this.describeTable(
+      new Table({ name: parsed.object, system: System.salesforce }),
+    )
+    if (described.columns.length === 0) {
+      throw new Error(
+        `Cannot expand '*' for '${parsed.object}': describe returned no queryable fields.`,
+      )
+    }
+
+    const colStr = described.columns.map((c) => c.name).join(', ')
+    const fieldTypes: Record<string, string> = {}
+    for (const c of described.columns) {
+      if (c.rawType) fieldTypes[c.name] = c.rawType
+    }
+
+    return {
+      soql: `${parsed.prefix}${colStr}${parsed.infix}${parsed.object}${parsed.suffix}`,
+      object: parsed.object,
+      fieldTypes,
+    }
+  }
+
   async query(statement: string, _opts: QueryOptions = {}): Promise<Records> {
     try {
-      return new Records({ data: this._requestRecords(statement), code: 200, message: 'ok' })
+      const expanded = await this._expandWildcard(statement)
+      if (!expanded) {
+        return new Records({ data: this._requestRecords(statement), code: 200, message: 'ok' })
+      }
+
+      const forceBulk = await this._exceedsBulkThreshold(expanded.object)
+      const raw = this._requestRecords(expanded.soql, forceBulk)
+      const data = Salesforce._castStream(raw, expanded.fieldTypes)
+      return new Records({ data, code: 200, message: 'ok' })
     } catch (e) {
       console.error(`Error in query: ${e}`)
       return new Records({ code: 500, message: String(e) })
@@ -244,13 +327,7 @@ export class Salesforce implements DataSource {
 
       const forceBulk = await this._exceedsBulkThreshold(table.name)
       const raw = this._requestRecords(soql, forceBulk)
-
-      const hasTypes = Object.keys(fieldTypes).length > 0
-      const data: AsyncGenerator<Row> = hasTypes
-        ? (async function* () {
-            for await (const r of raw) yield castRecord(r, fieldTypes)
-          })()
-        : raw
+      const data = Salesforce._castStream(raw, fieldTypes)
 
       return new Records({ data, code: 200, message: 'ok' })
     } catch (e) {
